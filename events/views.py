@@ -6,6 +6,7 @@ from .serializers import EventSerializer
 from .permissions import IsOrganizerOrReadOnly
 from .models import Event, RSVP
 from .serializers import EventSerializer, RSVPSerializer
+from rest_framework.response import Response
 
 class EventListCreateView(generics.ListCreateAPIView):
     queryset = Event.objects.filter(is_public=True)
@@ -39,8 +40,14 @@ class RSVPCreateView(generics.CreateAPIView):
         try:
             event = Event.objects.get(id=event_id)
         except Event.DoesNotExist:
-            return response({'error': 'Event not found.'}, status=404)
+            return Response({'error': 'Event not found.'}, status=404)
+        
+        # Check if RSVP already exists
+        if RSVP.objects.filter(event=event, user=request.user).exists():
+            return Response({'error': 'You have already RSVP\'d to this event.'}, status=400)
         
         serializer = self.get_serializer(data=request.data, context={'request': request, 'event': event})
         serializer.is_valid(raise_exception=True)
         serializer.save()
+        
+        return Response(serializer.data, status=201)
