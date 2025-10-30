@@ -27,7 +27,7 @@ INSTALLED_APPS = [
     'drf_yasg',
     
     #Local apps
-    'users',
+    'user',
     'events',
 ]
 
