@@ -27,8 +27,24 @@ class EventSerializer(serializers.ModelSerializer):
 
 class RSVPSerializer(serializers.ModelSerializer):
     user_name = serializers.CharField(source='user.username', read_only=True)
+    event_title = serializers.CharField(source='event.title', read_only=True)
     
     class Meta:
         model = RSVP
-        fields = ['id', 'event', 'user_name', 'status', 'created_at']
-        read_only_fields = ['user_name', 'created_at']
+        fields = ['id', 'event', 'user', 'user_name', 'event_title', 'status', 'created_at']
+        read_only_fields = ['user', 'event', 'created_at']
+    
+    def validate(self, attrs):
+        request = self.context.get('request')
+        event = self.context.get('event')
+        
+        if event and request and event.organizer == request.user:
+            raise serializers.ValidationError({
+                'error': 'Event organizer cannot RSVP to their own event.'
+            })
+        return attrs
+    
+    def create(self, validated_data):
+        validated_data['user'] = self.context['request'].user
+        validated_data['event'] = self.context['event']
+        return super().create(validated_data)
