@@ -27,3 +27,14 @@ class TestUserRegistration:
         }
         response = api_client.post('/api/register/', data)
         assert response.status_code == 201
+
+@pytest.mark.django_db
+class TestJWTAuth:
+    def test_login(self, api_client, create_user):
+        user = create_user()
+        response = api_client.post('/api/token/', {
+            'username': 'testuser',
+            'password': 'testpass123'
+        })
+        assert response.status_code == 200
+        assert 'access' in response.data
