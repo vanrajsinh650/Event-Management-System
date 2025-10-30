@@ -1,6 +1,9 @@
 import pytest
 from django.contrib.auth.models import User
 from rest_framework.test import APIClient
+from django.utils import timezone
+from datetime import timedelta
+from events.models import Event
 
 @pytest.fixture
 def api_client():
@@ -38,3 +41,19 @@ class TestJWTAuth:
         })
         assert response.status_code == 200
         assert 'access' in response.data
+
+@pytest.mark.django_db
+class TestEvents:
+    def test_create_event(self, api_client, create_user):
+        user = create_user()
+        api_client.force_authenticate(user=user)
+        
+        data = {
+            'title': 'Test Event',
+            'description': 'Test',
+            'location': 'Test Location',
+            'start_time': (timezone.now() + timedelta(days=1)).isoformat(),
+            'end_time': (timezone.now() + timedelta(days=1, hours=2)).isoformat(),
+        }
+        response = api_client.post('/api/events/', data)
+        assert response.status_code == 201
