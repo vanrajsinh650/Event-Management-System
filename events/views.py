@@ -12,6 +12,9 @@ from .serializers import EventSerializer, RSVPSerializer, ReviewSerializer
 from django_filters.rest_framework import DjangoFilterBackend
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
+from .tasks import send_rsvp_notification, send_review_notification
+from django.shortcuts import get_object_or_404
+from events.models import Event  # Adjust the import path based on your project structure
 
 class EventListCreateView(generics.ListCreateAPIView):
     queryset = Event.objects.filter(is_public=True)
@@ -87,3 +90,29 @@ class EventListCreateView(generics.ListCreateAPIView):
     search_fields = ['title', 'description']
     ordering_fields = ['start_time', 'created_at']
     ordering = ['-start_time']
+
+class RSVPCreateView(generics.CreateAPIView):
+    serializer_class = RSVPSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request, event_id):
+        #Get the event or return 404 if not found
+        event = get_object_or_404(Event, id=event_id)
+        
+        #Check if user already has an RSVP for this event
+        if RSVP.objects.filter(event=event, user=request.user).exists():
+            return Response({'error': 'You have already RSVP\'d to this event.'}, status=400)
+        
+        #Add event and user to the request data
+        data = request.data.copy()
+        data['event'] = event.id
+        data['user'] = request.user.id
+        
+        serializer = self.get_serializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        
+        #Send notification
+        send_rsvp_notification.delay(event.id, request.user.id, serializer.data['status'])
+        
+        return Response(serializer.data, status=201)
