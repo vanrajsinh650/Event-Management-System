@@ -57,3 +57,22 @@ class TestEvents:
         }
         response = api_client.post('/api/events/', data)
         assert response.status_code == 201
+
+@pytest.mark.django_db
+class TestPermissions:
+    def test_organizer_can_edit(self, api_client, create_user):
+        organizer = create_user(username='organizer')
+        other = create_user(username='other')
+        
+        event = Event.objects.create(
+            title='Test',
+            description='Test',
+            organizer=organizer,
+            location='Test',
+            start_time=timezone.now() + timedelta(days=1),
+            end_time=timezone.now() + timedelta(days=1, hours=2)
+        )
+        
+        api_client.force_authenticate(user=other)
+        response = api_client.patch(f'/api/events/{event.id}/update/', {'title': 'Hacked'})
+        assert response.status_code == 403
