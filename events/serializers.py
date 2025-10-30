@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import Event
+from .models import Event, RSVP
 
 class EventSerializer(serializers.ModelSerializer):
     organizer_name = serializers.CharField(source='organizer.username', read_only=True)
@@ -23,3 +24,11 @@ class EventSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         validated_data['organizer'] = self.context['request'].user
         return super().create(validated_data)
+
+class RSVPSerializer(serializers.ModelSerializer):
+    user_name = serializers.CharField(source='user.username', read_only=True)
+    
+    class Meta:
+        model = RSVP
+        fields = ['id', 'event', 'user_name', 'status', 'created_at']
+        read_only_fields = ['user_name', 'created_at']
