@@ -32,22 +32,22 @@ class EventDeleteView(generics.DestroyAPIView):
     serializer_class = EventSerializer
     permission_classes = [IsAuthenticated, IsOrganizerOrReadOnly]
 
-class RSVPCreateView(generics.CreateAPIView):
+class RSVPUpdateView(generics.UpdateAPIView):
     serializer_class = RSVPSerializer
     permission_classes = [IsAuthenticated]
+    http_method_names = ['patch']
     
-    def post(self, request, event_id):
+    def patch(self, request, event_id, user_id):
+        if request.user.id != user_id:
+            return Response({'error': 'You can only update your own RSVP.'}, status=403)
+        
         try:
-            event = Event.objects.get(id=event_id)
-        except Event.DoesNotExist:
-            return Response({'error': 'Event not found.'}, status=404)
+            rsvp = RSVP.objects.get(event_id=event_id, user_id=user_id)
+        except RSVP.DoesNotExist:
+            return Response({'error': 'RSVP not found.'}, status=404)
         
-        # Check if RSVP already exists
-        if RSVP.objects.filter(event=event, user=request.user).exists():
-            return Response({'error': 'You have already RSVP\'d to this event.'}, status=400)
-        
-        serializer = self.get_serializer(data=request.data, context={'request': request, 'event': event})
+        serializer = self.get_serializer(rsvp, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
         
-        return Response(serializer.data, status=201)
+        return Response(serializer.data)
