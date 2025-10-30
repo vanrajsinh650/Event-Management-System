@@ -3,7 +3,7 @@ Views for event-related endpoints.
 """
 from rest_framework import generics, status
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.permissions import IsAuthenticated, AllowAny, IsAuthenticatedOrReadOnly
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 from django.db.models import Q
@@ -16,6 +16,7 @@ from .permissions import IsOrganizerOrReadOnly
 class EventListCreateView(generics.ListCreateAPIView):
     """List all public events or create a new event."""
     serializer_class = EventSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]  # ← KEY FIX
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_fields = ['location', 'organizer', 'is_public']
     search_fields = ['title', 'description']
@@ -27,7 +28,7 @@ class EventListCreateView(generics.ListCreateAPIView):
         user = self.request.user
         
         if user.is_authenticated:
-            #Authenticated users see public events + private events they have access to
+            # Authenticated users see public events + private events they have access to
             queryset = Event.objects.filter(is_public=True)
             private_events = Event.objects.filter(
                 Q(is_public=False) &
@@ -35,14 +36,8 @@ class EventListCreateView(generics.ListCreateAPIView):
             ).distinct()
             return (queryset | private_events).distinct()
         else:
-            #Anonymous users only see public events
+            # Anonymous users only see public events
             return Event.objects.filter(is_public=True)
-    
-    def get_permissions(self):
-        """Set permissions based on action."""
-        if self.request.method == 'GET':
-            return [AllowAny()]
-        return [IsAuthenticated()]
 
 
 class EventDetailView(generics.RetrieveAPIView):
@@ -78,6 +73,7 @@ class RSVPCreateView(generics.CreateAPIView):
         except Event.DoesNotExist:
             return Response({'error': 'Event not found.'}, status=status.HTTP_404_NOT_FOUND)
         
+        # Check if RSVP already exists
         if RSVP.objects.filter(event=event, user=request.user).exists():
             return Response(
                 {'error': 'You have already RSVP\'d to this event.'},
@@ -126,7 +122,7 @@ class RSVPUpdateView(generics.UpdateAPIView):
 class ReviewListCreateView(generics.ListCreateAPIView):
     """List reviews for an event or create a new review."""
     serializer_class = ReviewSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticatedOrReadOnly]  # ← KEY FIX
     
     def get_queryset(self):
         """Get all reviews for the specified event."""
@@ -140,6 +136,7 @@ class ReviewListCreateView(generics.ListCreateAPIView):
         except Event.DoesNotExist:
             return Response({'error': 'Event not found.'}, status=status.HTTP_404_NOT_FOUND)
         
+        # Check if review already exists
         if Review.objects.filter(event=event, user=request.user).exists():
             return Response(
                 {'error': 'You have already reviewed this event.'},
