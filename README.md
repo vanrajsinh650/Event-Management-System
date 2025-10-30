@@ -23,6 +23,6 @@ pip install -r requirements.txt
 
 - Django 4.2.7
 - Django REST Framework
-- PostgreSQL
+- SQLlite
 - Celery with Redis
 - JWT Authentication
