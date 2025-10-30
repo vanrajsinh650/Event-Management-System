@@ -16,7 +16,7 @@ from .permissions import IsOrganizerOrReadOnly
 class EventListCreateView(generics.ListCreateAPIView):
     """List all public events or create a new event."""
     serializer_class = EventSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly]  # ← KEY FIX
+    permission_classes = [AllowAny]  # Allow anyone to view, but create needs auth in perform_create
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_fields = ['location', 'organizer', 'is_public']
     search_fields = ['title', 'description']
@@ -28,7 +28,6 @@ class EventListCreateView(generics.ListCreateAPIView):
         user = self.request.user
         
         if user.is_authenticated:
-            # Authenticated users see public events + private events they have access to
             queryset = Event.objects.filter(is_public=True)
             private_events = Event.objects.filter(
                 Q(is_public=False) &
@@ -36,8 +35,16 @@ class EventListCreateView(generics.ListCreateAPIView):
             ).distinct()
             return (queryset | private_events).distinct()
         else:
-            # Anonymous users only see public events
             return Event.objects.filter(is_public=True)
+    
+    def perform_create(self, serializer):
+        """Create event with current user as organizer."""
+        if not self.request.user.is_authenticated:
+            return Response(
+                {'error': 'Authentication required to create events'},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+        serializer.save(organizer=self.request.user)
 
 
 class EventDetailView(generics.RetrieveAPIView):
@@ -73,7 +80,6 @@ class RSVPCreateView(generics.CreateAPIView):
         except Event.DoesNotExist:
             return Response({'error': 'Event not found.'}, status=status.HTTP_404_NOT_FOUND)
         
-        # Check if RSVP already exists
         if RSVP.objects.filter(event=event, user=request.user).exists():
             return Response(
                 {'error': 'You have already RSVP\'d to this event.'},
@@ -122,7 +128,7 @@ class RSVPUpdateView(generics.UpdateAPIView):
 class ReviewListCreateView(generics.ListCreateAPIView):
     """List reviews for an event or create a new review."""
     serializer_class = ReviewSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly]  # ← KEY FIX
+    permission_classes = [AllowAny]
     
     def get_queryset(self):
         """Get all reviews for the specified event."""
@@ -131,12 +137,17 @@ class ReviewListCreateView(generics.ListCreateAPIView):
     
     def post(self, request, event_id):
         """Create review for event."""
+        if not request.user.is_authenticated:
+            return Response(
+                {'error': 'Authentication required to create reviews'},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+        
         try:
             event = Event.objects.get(id=event_id)
         except Event.DoesNotExist:
             return Response({'error': 'Event not found.'}, status=status.HTTP_404_NOT_FOUND)
         
-        # Check if review already exists
         if Review.objects.filter(event=event, user=request.user).exists():
             return Response(
                 {'error': 'You have already reviewed this event.'},
