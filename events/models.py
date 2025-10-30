@@ -27,3 +27,21 @@ class Event(models.Model):
     def save(self, *args, **kwargs):
         self.clean()
         super().save(*args, **kwargs)
+
+class RSVP(models.Model):
+    STATUS_CHOICES = [
+        ('Going', 'Going'),
+        ('Maybe', 'Maybe'),
+        ('Not Going', 'Not Going'),
+    ]
+    
+    event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name='rsvps')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='rsvps')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        unique_together = ['event', 'user']
+    
+    def __str__(self):
+        return f"{self.user.username} - {self.event.title} - {self.status}"
