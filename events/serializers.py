@@ -29,7 +29,7 @@ class EventSerializer(serializers.ModelSerializer):
         reviews = obj.reviews.all()
         if not reviews:
             return None
-        return sum(r.rating for r in reviews) / len(reviews)
+        return round(sum(r.rating for r in reviews) / len(reviews), 1)
     
     def validate(self, data):
         """Validate event times."""

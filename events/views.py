@@ -16,9 +16,9 @@ from .permissions import IsOrganizerOrReadOnly
 class EventListCreateView(generics.ListCreateAPIView):
     """List all public events or create a new event."""
     serializer_class = EventSerializer
-    permission_classes = [AllowAny]  # Allow anyone to view, but create needs auth in perform_create
+    permission_classes = [AllowAny]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = ['location', 'organizer', 'is_public']
+    filterset_fields = ['location', 'is_public']
     search_fields = ['title', 'description']
     ordering_fields = ['start_time', 'created_at']
     ordering = ['-start_time']
@@ -128,7 +128,7 @@ class RSVPUpdateView(generics.UpdateAPIView):
 class ReviewListCreateView(generics.ListCreateAPIView):
     """List reviews for an event or create a new review."""
     serializer_class = ReviewSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [AllowAny]  # Allow anyone to read reviews
     
     def get_queryset(self):
         """Get all reviews for the specified event."""
@@ -136,8 +136,9 @@ class ReviewListCreateView(generics.ListCreateAPIView):
         return Review.objects.filter(event_id=event_id)
     
     def post(self, request, event_id):
-        """Create review for event."""
-        if not request.user.is_authenticated:
+        """Create review for event - requires authentication."""
+        # Check authentication first
+        if not request.user or not request.user.is_authenticated:
             return Response(
                 {'error': 'Authentication required to create reviews'},
                 status=status.HTTP_401_UNAUTHORIZED
