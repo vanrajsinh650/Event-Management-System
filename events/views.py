@@ -3,7 +3,7 @@ Views for event-related endpoints.
 """
 from rest_framework import generics, status
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated, AllowAny, IsAuthenticatedOrReadOnly
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 from django.db.models import Q
@@ -39,11 +39,13 @@ class EventListCreateView(generics.ListCreateAPIView):
     
     def perform_create(self, serializer):
         """Create event with current user as organizer."""
+        # FIX: Check if user is authenticated FIRST
         if not self.request.user.is_authenticated:
-            return Response(
+            raise Response(
                 {'error': 'Authentication required to create events'},
                 status=status.HTTP_401_UNAUTHORIZED
             )
+        # Now save with authenticated user
         serializer.save(organizer=self.request.user)
 
 
@@ -91,7 +93,10 @@ class RSVPCreateView(generics.CreateAPIView):
             context={'request': request, 'event': event}
         )
         serializer.is_valid(raise_exception=True)
-        serializer.save()
+        rsvp = serializer.save()
+        rsvp.user = request.user
+        rsvp.event = event
+        rsvp.save()
         
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
@@ -128,7 +133,7 @@ class RSVPUpdateView(generics.UpdateAPIView):
 class ReviewListCreateView(generics.ListCreateAPIView):
     """List reviews for an event or create a new review."""
     serializer_class = ReviewSerializer
-    permission_classes = [AllowAny]  # Allow anyone to read reviews
+    permission_classes = [AllowAny]
     
     def get_queryset(self):
         """Get all reviews for the specified event."""
@@ -137,7 +142,6 @@ class ReviewListCreateView(generics.ListCreateAPIView):
     
     def post(self, request, event_id):
         """Create review for event - requires authentication."""
-        # Check authentication first
         if not request.user or not request.user.is_authenticated:
             return Response(
                 {'error': 'Authentication required to create reviews'},
@@ -160,6 +164,9 @@ class ReviewListCreateView(generics.ListCreateAPIView):
             context={'request': request, 'event': event}
         )
         serializer.is_valid(raise_exception=True)
-        serializer.save()
+        review = serializer.save()
+        review.user = request.user
+        review.event = event
+        review.save()
         
         return Response(serializer.data, status=status.HTTP_201_CREATED)

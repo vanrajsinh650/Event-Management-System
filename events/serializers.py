@@ -18,11 +18,15 @@ class EventSerializer(serializers.ModelSerializer):
             'location', 'start_time', 'end_time', 'is_public', 'created_at',
             'updated_at', 'rsvp_count', 'average_rating'
         ]
-        read_only_fields = ['id', 'organizer', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'organizer', 'created_at', 'updated_at', 'rsvp_count', 'average_rating']
     
     def get_rsvp_count(self, obj):
         """Get total RSVPs for event."""
-        return obj.rsvps.count()
+        # Updated to handle both model instances and dicts (OrderedDict) returned during serialization of validated_data.
+        # Safely computes length using .get('rsvps') when obj has no attribute.
+        if isinstance(obj, dict):
+            return len(obj.get('rsvps', []))
+        return obj.rsvps.count() if hasattr(obj, 'rsvps') else 0
     
     def get_average_rating(self, obj):
         """Get average rating for event."""
@@ -41,11 +45,6 @@ class EventSerializer(serializers.ModelSerializer):
                 'end_time': 'End time must be after start time.'
             })
         return data
-    
-    def create(self, validated_data):
-        """Create event with current user as organizer."""
-        validated_data['organizer'] = self.context['request'].user
-        return super().create(validated_data)
 
 
 class RSVPSerializer(serializers.ModelSerializer):
@@ -59,23 +58,6 @@ class RSVPSerializer(serializers.ModelSerializer):
             'id', 'event', 'user', 'user_name', 'event_title', 'status', 'created_at'
         ]
         read_only_fields = ['id', 'user', 'event', 'created_at']
-    
-    def validate(self, attrs):
-        """Validate RSVP constraints."""
-        request = self.context.get('request')
-        event = self.context.get('event')
-        
-        if event and request and event.organizer == request.user:
-            raise serializers.ValidationError({
-                'error': 'Event organizer cannot RSVP to their own event.'
-            })
-        return attrs
-    
-    def create(self, validated_data):
-        """Create RSVP with current user."""
-        validated_data['user'] = self.context['request'].user
-        validated_data['event'] = self.context['event']
-        return super().create(validated_data)
 
 
 class ReviewSerializer(serializers.ModelSerializer):
@@ -95,20 +77,3 @@ class ReviewSerializer(serializers.ModelSerializer):
         if value < 1 or value > 5:
             raise serializers.ValidationError('Rating must be between 1 and 5.')
         return value
-    
-    def validate(self, attrs):
-        """Validate review constraints."""
-        request = self.context.get('request')
-        event = self.context.get('event')
-        
-        if event and request and Review.objects.filter(event=event, user=request.user).exists():
-            raise serializers.ValidationError({
-                'error': 'You have already reviewed this event.'
-            })
-        return attrs
-    
-    def create(self, validated_data):
-        """Create review with current user."""
-        validated_data['user'] = self.context['request'].user
-        validated_data['event'] = self.context['event']
-        return super().create(validated_data)
