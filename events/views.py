@@ -7,6 +7,8 @@ from .permissions import IsOrganizerOrReadOnly
 from .models import Event, RSVP
 from .serializers import EventSerializer, RSVPSerializer
 from rest_framework.response import Response
+from .models import Event, RSVP, Review
+from .serializers import EventSerializer, RSVPSerializer, ReviewSerializer
 
 class EventListCreateView(generics.ListCreateAPIView):
     queryset = Event.objects.filter(is_public=True)
@@ -51,3 +53,26 @@ class RSVPUpdateView(generics.UpdateAPIView):
         serializer.save()
         
         return Response(serializer.data)
+
+class ReviewListCreateView(generics.ListCreateAPIView):
+    serializer_class = ReviewSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        event_id = self.kwargs.get('event_id')
+        return Review.objects.filter(event_id=event_id)
+    
+    def post(self, request, event_id):
+        try:
+            event = Event.objects.get(id=event_id)
+        except Event.DoesNotExist:
+            return Response({'error': 'Event not found.'}, status=404)
+        
+        if Review.objects.filter(event=event, user=request.user).exists():
+            return Response({'error': 'You have already reviewed this event.'}, status=400)
+        
+        serializer = self.get_serializer(data=request.data, context={'request': request, 'event': event})
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        
+        return Response(serializer.data, status=201)
