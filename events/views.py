@@ -2,6 +2,7 @@ from rest_framework import generics
 from rest_framework.permissions import IsAuthenticatedOrReadOnly, AllowAny, IsAuthenticated
 from .models import Event
 from .serializers import EventSerializer
+from .permissions import IsOrganizerOrReadOnly
 
 class EventListCreateView(generics.ListCreateAPIView):
     queryset = Event.objects.filter(is_public=True)
@@ -16,3 +17,13 @@ class EventDetailView(generics.RetrieveAPIView):
     queryset = Event.objects.all()
     serializer_class = EventSerializer
     permission_classes = [AllowAny]
+
+class EventUpdateView(generics.UpdateAPIView):
+    queryset = Event.objects.all()
+    serializer_class = EventSerializer
+    permission_classes = [IsAuthenticated, IsOrganizerOrReadOnly]
+
+class EventDeleteView(generics.DestroyAPIView):
+    queryset = Event.objects.all()
+    serializer_class = EventSerializer
+    permission_classes = [IsAuthenticated, IsOrganizerOrReadOnly]
