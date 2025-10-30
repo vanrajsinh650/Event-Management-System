@@ -15,7 +15,7 @@ from rest_framework_simplejwt.views import (
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
 
-# Swagger/ReDoc Schema View
+#Swagger/ReDoc Schema View
 schema_view = get_schema_view(
     openapi.Info(
         title="Event Management API",
@@ -48,28 +48,28 @@ def redirect_to_swagger(request):
     return HttpResponseRedirect('/swagger/')
 
 urlpatterns = [
-    # Redirect root to Swagger
+    #Redirect root to Swagger
     path('', redirect_to_swagger, name='home'),
     
-    # Admin
+    #Admin
     path('admin/', admin.site.urls, name='admin'),
     
-    # API Documentation
+    #API Documentation
     path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
     path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
     path('swagger.json', schema_view.without_ui(cache_timeout=0), name='schema-json'),
     
-    # JWT Authentication
+    #JWT Authentication
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('api/token/verify/', TokenVerifyView.as_view(), name='token_verify'),
     
-    # App URLs
+    #App URLs
     path('api/', include('user.urls')),
     path('api/', include('events.urls')),
 ]
 
-# Serve media files in development
+#Serve media files in development
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
