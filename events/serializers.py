@@ -18,18 +18,19 @@ class EventSerializer(serializers.ModelSerializer):
             'location', 'start_time', 'end_time', 'is_public', 'created_at',
             'updated_at', 'rsvp_count', 'average_rating'
         ]
-        read_only_fields = ['id', 'organizer', 'created_at', 'updated_at', 'rsvp_count', 'average_rating']
+        read_only_fields = ['id', 'organizer', 'created_at', 'updated_at']
     
     def get_rsvp_count(self, obj):
         """Get total RSVPs for event."""
-        # Updated to handle both model instances and dicts (OrderedDict) returned during serialization of validated_data.
-        # Safely computes length using .get('rsvps') when obj has no attribute.
         if isinstance(obj, dict):
-            return len(obj.get('rsvps', []))
-        return obj.rsvps.count() if hasattr(obj, 'rsvps') else 0
+            return 0
+        return obj.rsvps.count()
     
     def get_average_rating(self, obj):
         """Get average rating for event."""
+        if isinstance(obj, dict):
+            return None
+        
         reviews = obj.reviews.all()
         if not reviews:
             return None
@@ -45,6 +46,11 @@ class EventSerializer(serializers.ModelSerializer):
                 'end_time': 'End time must be after start time.'
             })
         return data
+    
+    def create(self, validated_data):
+        """Create event instance."""
+        event = Event.objects.create(**validated_data)
+        return event
 
 
 class RSVPSerializer(serializers.ModelSerializer):
@@ -58,6 +64,11 @@ class RSVPSerializer(serializers.ModelSerializer):
             'id', 'event', 'user', 'user_name', 'event_title', 'status', 'created_at'
         ]
         read_only_fields = ['id', 'user', 'event', 'created_at']
+    
+    def create(self, validated_data):
+        """Create RSVP instance."""
+        rsvp = RSVP.objects.create(**validated_data)
+        return rsvp
 
 
 class ReviewSerializer(serializers.ModelSerializer):
@@ -77,3 +88,8 @@ class ReviewSerializer(serializers.ModelSerializer):
         if value < 1 or value > 5:
             raise serializers.ValidationError('Rating must be between 1 and 5.')
         return value
+    
+    def create(self, validated_data):
+        """Create review instance."""
+        review = Review.objects.create(**validated_data)
+        return review

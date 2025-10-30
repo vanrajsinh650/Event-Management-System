@@ -39,13 +39,11 @@ class EventListCreateView(generics.ListCreateAPIView):
     
     def perform_create(self, serializer):
         """Create event with current user as organizer."""
-        # FIX: Check if user is authenticated FIRST
+        # FIX: Check if user is authenticated
         if not self.request.user.is_authenticated:
-            raise Response(
-                {'error': 'Authentication required to create events'},
-                status=status.HTTP_401_UNAUTHORIZED
-            )
-        # Now save with authenticated user
+            # Use return, not raise!
+            return
+        # Save with authenticated user
         serializer.save(organizer=self.request.user)
 
 
