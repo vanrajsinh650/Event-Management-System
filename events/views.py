@@ -10,6 +10,8 @@ from rest_framework.response import Response
 from .models import Event, RSVP, Review
 from .serializers import EventSerializer, RSVPSerializer, ReviewSerializer
 from django_filters.rest_framework import DjangoFilterBackend
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.filters import SearchFilter, OrderingFilter
 
 class EventListCreateView(generics.ListCreateAPIView):
     queryset = Event.objects.filter(is_public=True)
@@ -80,5 +82,8 @@ class ReviewListCreateView(generics.ListCreateAPIView):
 
 class EventListCreateView(generics.ListCreateAPIView):
     serializer_class = EventSerializer
-    filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['location', 'organizer']
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = ['location', 'organizer', 'is_public']
+    search_fields = ['title', 'description']
+    ordering_fields = ['start_time', 'created_at']
+    ordering = ['-start_time']
