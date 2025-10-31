@@ -2,6 +2,7 @@ from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 from django_filters.rest_framework import DjangoFilterBackend
+from django_filters import FilterSet, CharFilter
 from rest_framework.filters import SearchFilter, OrderingFilter
 from django.contrib.auth.models import User
 
@@ -9,12 +10,21 @@ from .models import Event, RSVP, Review
 from .serializers import EventSerializer, RSVPSerializer, ReviewSerializer
 
 
+class EventFilter(FilterSet):
+    """Custom filter for events with case-insensitive location search."""
+    location = CharFilter(field_name='location', lookup_expr='icontains')
+    
+    class Meta:
+        model = Event
+        fields = ['location', 'is_public']
+
+
 class EventListCreateView(generics.ListCreateAPIView):
     queryset = Event.objects.all()
     serializer_class = EventSerializer
     permission_classes = [AllowAny]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = ['location', 'is_public']
+    filterset_class = EventFilter
     search_fields = ['title', 'description', 'organizer__username']
     ordering_fields = ['start_time', 'created_at']
     ordering = ['-start_time']
