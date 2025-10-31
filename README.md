@@ -258,50 +258,6 @@ pytest --cov=. --cov-report=html
 # Open htmlcov/index.html in browser
 \`\`\`
 
-## 📁 Project Structure
-
-\`\`\`
-event_management/
-├── event_management/
-│   ├── __init__.py          # Celery app initialization
-│   ├── settings.py          # Django settings
-│   ├── urls.py              # Main URL configuration
-│   ├── celery.py            # Celery configuration
-│   ├── asgi.py
-│   └── wsgi.py
-├── events/
-│   ├── migrations/
-│   ├── __init__.py
-│   ├── admin.py             # Admin configuration
-│   ├── apps.py
-│   ├── models.py            # Event, RSVP, Review models
-│   ├── permissions.py       # Custom permissions
-│   ├── serializers.py       # DRF serializers
-│   ├── tasks.py             # Celery tasks
-│   ├── tests.py             # All tests
-│   ├── urls.py              # Event URL patterns
-│   └── views.py             # API views
-├── user/                    # Note: singular 'user'
-│   ├── migrations/
-│   ├── __init__.py
-│   ├── admin.py             # Admin configuration
-│   ├── apps.py
-│   ├── models.py            # UserProfile model
-│   ├── serializers.py       # User serializers
-│   ├── views.py             # User views
-│   └── urls.py              # User URL patterns
-├── .venv/                   # Virtual environment
-├── media/                   # User-uploaded files
-├── staticfiles/             # Static files
-├── .env                     # Environment variables
-├── .gitignore
-├── db.sqlite3               # SQLite database
-├── manage.py                # Django management script
-├── pytest.ini               # Pytest configuration
-├── README.md                # This file
-└── requirements.txt         # Python dependencies
-\`\`\`
-
 ## ⚙️ Environment Variables
 
 | Variable | Description | Default |
