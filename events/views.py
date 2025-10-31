@@ -5,6 +5,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from django_filters import FilterSet, CharFilter
 from rest_framework.filters import SearchFilter, OrderingFilter
 from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError
 
 from .models import Event, RSVP, Review
 from .serializers import EventSerializer, RSVPSerializer, ReviewSerializer
@@ -59,18 +60,22 @@ class RSVPCreateView(generics.CreateAPIView):
     def post(self, request, event_id):
         try:
             event = Event.objects.get(id=event_id)
-        except:
-            return Response({'error': 'Event not found'}, status=404)
+        except Event.DoesNotExist:
+            return Response({'error': 'Event not found'}, status=status.HTTP_404_NOT_FOUND)
         
         user = User.objects.first() or User.objects.create_user(username='user1', password='pass')
         
         if RSVP.objects.filter(event=event, user=user).exists():
-            return Response({'error': 'Already RSVP\'d'}, status=400)
+            return Response({'error': 'Already RSVP\'d'}, status=status.HTTP_400_BAD_REQUEST)
         
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        serializer.save(user=user, event=event)
-        return Response(serializer.data, status=201)
+        
+        try:
+            serializer.save(user=user, event=event)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        except ValidationError as e:
+            return Response({'error': str(e.messages[0])}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class RSVPUpdateView(generics.UpdateAPIView):
@@ -81,8 +86,8 @@ class RSVPUpdateView(generics.UpdateAPIView):
     def patch(self, request, event_id, user_id):
         try:
             rsvp = RSVP.objects.get(event_id=event_id, user_id=user_id)
-        except:
-            return Response({'error': 'RSVP not found'}, status=404)
+        except RSVP.DoesNotExist:
+            return Response({'error': 'RSVP not found'}, status=status.HTTP_404_NOT_FOUND)
         
         serializer = self.get_serializer(rsvp, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
@@ -101,15 +106,19 @@ class ReviewListCreateView(generics.ListCreateAPIView):
     def post(self, request, event_id):
         try:
             event = Event.objects.get(id=event_id)
-        except:
-            return Response({'error': 'Event not found'}, status=404)
+        except Event.DoesNotExist:
+            return Response({'error': 'Event not found'}, status=status.HTTP_404_NOT_FOUND)
         
         user = User.objects.first() or User.objects.create_user(username='user2', password='pass')
         
         if Review.objects.filter(event=event, user=user).exists():
-            return Response({'error': 'Already reviewed'}, status=400)
+            return Response({'error': 'Already reviewed'}, status=status.HTTP_400_BAD_REQUEST)
         
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        serializer.save(user=user, event=event)
-        return Response(serializer.data, status=201)
+        
+        try:
+            serializer.save(user=user, event=event)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        except ValidationError as e:
+            return Response({'error': str(e.messages[0])}, status=status.HTTP_400_BAD_REQUEST)
