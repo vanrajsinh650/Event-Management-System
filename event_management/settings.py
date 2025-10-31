@@ -107,18 +107,10 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ],
-    'DEFAULT_PERMISSION_CLASSES': [
-        #Change from IsAuthenticated to AllowAny for now
-        'rest_framework.permissions.AllowAny',  # ← CHANGE THIS
-    ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 10,
-    'DEFAULT_FILTER_BACKENDS': [
-        'django_filters.rest_framework.DjangoFilterBackend',
-        'rest_framework.filters.SearchFilter',
-        'rest_framework.filters.OrderingFilter',
-    ],
+    'PAGE_SIZE': 10
 }
+
 
 #Simple JWT configuration
 SIMPLE_JWT = {
@@ -149,10 +141,18 @@ SWAGGER_SETTINGS = {
         'Bearer': {
             'type': 'apiKey',
             'name': 'Authorization',
-            'in': 'header'
+            'in': 'header',
+            'description': 'JWT token with Bearer prefix'
         }
     },
+    'SECURITY': [
+        {
+            'Bearer': []
+        }
+    ],
+    'USE_SESSION_AUTH': False,
 }
+
 
 REST_FRAMEWORK = {
     #existing settings 
